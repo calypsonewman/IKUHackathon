@@ -7,12 +7,8 @@
   Clinics.init();
   Profile.init();
 
-  const map = L.map('world-map', { worldCopyJump: true, minZoom: 2, maxBounds: [[-85, -200], [85, 200]] }).setView([25, 10], 2);
-  L.tileLayer('https://{s}.basemap.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    subdomains: 'abcd',
-    maxZoom: 10,
-  }).addTo(map);
+  // No background tiles: the coloured country shapes sit on the map's plain blue "sea" (see .world-map in styles.css).
+  const map = L.map('world-map', { worldCopyJump: true, minZoom: 2, maxZoom: 10, maxBounds: [[-85, -200], [85, 200]] }).setView([25, 10], 2);
 
   // Countries
   const topo = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json').then((r) => r.json());

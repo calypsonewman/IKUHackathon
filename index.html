@@ -62,7 +62,17 @@
           Vaccine
           <select id="vaccine-select"></select>
         </label>
+        <label class="vaccine-select">
+          Sort
+          <select id="clinic-sort">
+            <option value="distance">Nearest first</option>
+            <option value="open">Open now first</option>
+            <option value="website">Has a website first</option>
+            <option value="pharmacy">Pharmacies first</option>
+          </select>
+        </label>
       </div>
+      <div id="clinic-advice"></div>
       <p id="clinic-status" class="status">Share your location to find travel clinics and pharmacies nearby.</p>
       <div class="clinic-grid">
         <div id="clinic-map" class="clinic-map"></div>
@@ -89,7 +99,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
-  <script src="config.js" onerror="window.APP_CONFIG = {}"></script>
   <script src="js/data.js"></script>
   <script src="js/nhs.js"></script>
   <script src="js/profile.js"></script>

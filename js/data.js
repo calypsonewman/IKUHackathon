@@ -2,16 +2,19 @@
 // Guidance is summarised from UK sources (NaTHNaC / TravelHealthPro, NHS fitfortravel, FCDO)
 // and is intentionally general. Users are always pointed to the official pages and a clinician.
 
+// nhsFree: usually free on the NHS from the GP practice you're registered with.
 const VACCINES = {
   routine: {
     name: 'Routine UK vaccines',
     info: 'Make sure MMR, diphtheria, tetanus and polio are up to date before any trip. Check if you are eligible for flu and COVID-19 vaccines.',
     query: 'GP surgery',
+    nhsFree: true,
   },
   hepA: {
     name: 'Hepatitis A',
     info: 'Spread through contaminated food and water. One dose protects for about a year; a booster 6–12 months later gives long-term protection.',
     query: 'travel vaccination clinic hepatitis A',
+    nhsFree: true,
   },
   hepB: {
     name: 'Hepatitis B',
@@ -22,6 +25,7 @@ const VACCINES = {
     name: 'Typhoid',
     info: 'Spread through contaminated food and water. Single injection (about 3 years protection) or oral capsules.',
     query: 'travel vaccination clinic typhoid',
+    nhsFree: true,
   },
   rabies: {
     name: 'Rabies',
@@ -47,6 +51,7 @@ const VACCINES = {
     name: 'Cholera',
     info: 'Spread through contaminated water. Oral vaccine, 2 doses 1–6 weeks apart. Usually only for aid workers or those visiting outbreak areas.',
     query: 'travel vaccination clinic cholera',
+    nhsFree: true,
   },
   menacwy: {
     name: 'Meningitis ACWY',

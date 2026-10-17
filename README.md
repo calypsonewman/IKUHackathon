@@ -14,25 +14,27 @@ An interactive world map. Click a country (or a city marker) to see dropdowns fo
 - **Health advice** – malaria, mosquito-borne disease, altitude, food & water, etc.
 - **Travel advice** – emergency numbers, entry notes, link to FCDO advice
 
-Below the map, **Vaccination clinics near you** uses your current location (or a postcode) to show clinics on Google Maps, filtered by the vaccine you pick.
+Below the map, **Vaccination clinics near you** uses your current location (or a UK postcode/town) to list NHS-listed pharmacy travel clinics and GP practices, with badges, sort options and a map with matching numbered pins.
 
 ### Run it
 
 No build step and nothing to install. Start the app server (it serves the site and the AI news API):
 
 ```bash
-cp server/.env.example server/.env   # then add your GEMINI_API_KEY
+cp server/.env.example server/.env   # then add your GEMINI_API_KEY and NHS_API_KEY
 python3 server/app.py
-# open http://localhost:8000
+# open http://localhost:8000  (not index.html directly: news and clinics need the server)
 ```
 
-### Google Maps API key (optional)
+### Clinics (NHS Directory of Healthcare Services)
 
-Without a key, the clinics section uses a keyless Google Maps embed plus a link to full results.
-For a clickable clinic list with markers and distances:
+`server/app.py` (`/api/clinics`) asks the NHS Directory of Healthcare Services API (v3) for the nearest pharmacies with a **Travel clinic** service (code `SRV0516`) and the nearest GP practices, and caches each ~1 km area for 24 hours in `server/cache/`.
 
-1. `cp config.example.js config.js` (config.js is git-ignored)
-2. Add a key with **Maps JavaScript API** and **Places API (New)** enabled.
+- Get a free key: create an account on the [NHS England developer hub](https://digital.nhs.uk/developer), add an **Integration test** application, and add the **Service search - REST API (Integration Testing Environment)**. Put the key in `server/.env` as `NHS_API_KEY`.
+- The integration environment is a close copy of live NHS data, limited to 1,500 requests/week and 1/second. Going live needs NHS onboarding (set `NHS_API_BASE` to production).
+- Postcodes and towns are turned into coordinates with [postcodes.io](https://postcodes.io) (free, no key).
+- The NHS data says *whether* a pharmacy runs a travel clinic, not which vaccines it stocks, and does not mark yellow fever centres, so the app links to NaTHNaC's yellow fever centre finder.
+- Which vaccines are free at GP practices is set by `nhsFree` in `js/data.js`.
 
 ### Data
 
