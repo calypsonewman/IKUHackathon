@@ -1,5 +1,11 @@
 # IKUHackathon
-App extension for NHS app to track vaccination advice and travel advice.
+## JABMAP: Making Health More Accessible 
+The project's main idea is to make vaccine information readily available in one space. 
+
+Problem:
+When travelling to another country, we require getting some vaccinations or health tests done depending on our health condition and the destination’s health regulations. Searching for these required tests and vaccines can be a tedious task, given that various sources point to different requirements.
+
+This application solves this issue and its features are described under the 'Travel Health Map' sub-title.
 
 ## Travel Health Map
 
