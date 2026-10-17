@@ -147,3 +147,11 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Local config with API keys
+config.js
+
+# Server secrets & cache
+server/.env
+server/cache/
+__pycache__/

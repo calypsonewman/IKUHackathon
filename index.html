@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Travel Health Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <h1>Travel Health Map</h1>
+      <p>Click a country or city to see recommended vaccines, health advice and travel advice.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <details id="profile" class="profile-card">
+      <summary>
+        <span><strong>Your trip &amp; health</strong> <span class="optional">(optional)</span><br />
+          <span id="profile-summary" class="small"></span></span>
+      </summary>
+      <div id="profile-body"></div>
+    </details>
+
+    <section class="explorer" aria-label="Destination explorer">
+      <div class="map-col">
+        <div class="search">
+          <label for="dest-search" class="visually-hidden">Search a destination</label>
+          <input id="dest-search" list="dest-list" placeholder="Search a country or city…" autocomplete="off" />
+          <datalist id="dest-list"></datalist>
+        </div>
+        <div id="world-map" class="world-map" role="application" aria-label="World map"></div>
+        <div class="legend" aria-label="Map legend">
+          <span><i class="sw l0"></i>Routine only</span>
+          <span><i class="sw l1"></i>Some travellers</span>
+          <span><i class="sw l2"></i>Several vaccines / some malaria</span>
+          <span><i class="sw l3"></i>Yellow fever or high malaria risk</span>
+          <span><i class="city-dot"></i>City</span>
+        </div>
+      </div>
+
+      <aside id="panel" class="panel" aria-live="polite">
+        <div class="panel-empty">
+          <h2>Choose a destination</h2>
+          <p>Select a country or city on the map, or search above.</p>
+        </div>
+      </aside>
+    </section>
+
+    <section id="clinics" class="clinics" aria-labelledby="clinics-title">
+      <h2 id="clinics-title">Vaccination clinics near you</h2>
+      <div class="clinic-controls">
+        <button id="locate-btn" class="btn">Use my current location</button>
+        <form id="place-form" class="place-form">
+          <label for="place-input" class="visually-hidden">Postcode or town</label>
+          <input id="place-input" placeholder="or enter a postcode / town" />
+          <button class="btn btn-secondary" type="submit">Search</button>
+        </form>
+        <label class="vaccine-select">
+          Vaccine
+          <select id="vaccine-select"></select>
+        </label>
+      </div>
+      <p id="clinic-status" class="status">Share your location to find travel clinics and pharmacies nearby.</p>
+      <div class="clinic-grid">
+        <div id="clinic-map" class="clinic-map"></div>
+        <ol id="clinic-list" class="clinic-list"></ol>
+      </div>
+      <p class="small">
+        Many NHS GP practices give some travel vaccines for free (hepatitis A, typhoid, cholera, and diphtheria/tetanus/polio).
+        Others, such as yellow fever, rabies and Japanese encephalitis, are usually private and only given at travel clinics or pharmacies.
+        Yellow fever is only given at registered centres.
+        <a href="https://www.nhs.uk/service-search/pharmacy/find-a-pharmacy" target="_blank" rel="noopener">Find a pharmacy on NHS.uk</a>.
+      </p>
+    </section>
+
+    <footer class="disclaimer">
+      <p>
+        This app gives general guidance only and is not a substitute for professional advice.
+        Always check <a href="https://travelhealthpro.org.uk/countries" target="_blank" rel="noopener">TravelHealthPro (NaTHNaC)</a>,
+        <a href="https://www.fitfortravel.nhs.uk/destinations" target="_blank" rel="noopener">fitfortravel</a> and
+        <a href="https://www.gov.uk/foreign-travel-advice" target="_blank" rel="noopener">FCDO travel advice</a>,
+        and speak to a nurse, pharmacist or travel clinic 6–8 weeks before you travel.
+      </p>
+    </footer>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+  <script src="config.js" onerror="window.APP_CONFIG = {}"></script>
+  <script src="js/data.js"></script>
+  <script src="js/nhs.js"></script>
+  <script src="js/profile.js"></script>
+  <script src="js/clinics.js"></script>
+  <script src="js/news.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
