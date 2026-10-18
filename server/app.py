@@ -14,6 +14,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+import uuid
 import xml.etree.ElementTree as ET
 from email.utils import parsedate_to_datetime
 from datetime import date
@@ -452,6 +453,119 @@ def add_google_ratings(data, lat, lng):
     return {**data, "clinics": clinics, "ratingsNote": "Star ratings from Google."}
 
 
+# ---------- NHS immunisation record (demo) ----------
+# Going live means NHS login (the user proves who they are) plus NHS onboarding for the Immunisation FHIR API.
+# Until then we call the real API's open sandbox, and add a clearly labelled sample record because the
+# sandbox only ever returns one RSV record. Both go through the same conversion code below.
+
+NHS_IMMS_BASE = os.environ.get("NHS_IMMS_BASE", "https://sandbox.api.service.nhs.uk/immunisation-fhir-api/FHIR/R4")
+SANDBOX_NHS_NUMBER = "9000000009"  # the sandbox's test patient
+SAMPLE_RECORD = SERVER_DIR / "sample-nhs-record.json"
+# The API's vaccine types that match vaccines in our app. The NHS lists all three as "in development"
+# (Beta covers RSV, flu and HPV), and doesn't say how far back records go.
+IMMS_TARGETS = ["3IN1", "MMR", "MENACWY"]
+# Disease -> our vaccine key. By SNOMED code first, then by name, because some diseases have several codes.
+DISEASE_CODES = {"397428000": "routine", "397430003": "routine", "76902006": "routine", "398102009": "routine",
+                 "14189004": "mmr", "36989005": "mmr", "36653000": "mmr", "23511006": "menacwy"}
+DISEASE_WORDS = {"diphtheria": "routine", "tetanus": "routine", "polio": "routine",
+                 "measles": "mmr", "mumps": "mmr", "rubella": "mmr", "meningococcal": "menacwy"}
+DOSES_FOR_FULL_COURSE = {"routine": 5, "mmr": 2, "menacwy": 1}  # UK routine schedule
+
+
+def target_diseases(imm):
+    for protocol in imm.get("protocolApplied") or []:
+        for disease in protocol.get("targetDisease") or []:
+            yield from disease.get("coding") or []
+
+
+def immunisation_key(imm):
+    """Which of our vaccines this FHIR Immunization counts towards, or None."""
+    for coding in target_diseases(imm):
+        if coding.get("code") in DISEASE_CODES:
+            return DISEASE_CODES[coding["code"]]
+        display = (coding.get("display") or "").lower()
+        for word, key in DISEASE_WORDS.items():
+            if word in display:
+                return key
+    return None
+
+
+def immunisation_name(imm):
+    for coding in target_diseases(imm):
+        if coding.get("display"):
+            return coding["display"].replace(" (disorder)", "")
+    return ((imm.get("vaccineCode") or {}).get("coding") or [{}])[0].get("display") or "Unknown vaccine"
+
+
+def sandbox_immunisations():
+    """Immunization records for the sandbox's test patient, from the real NHS Immunisation FHIR API sandbox."""
+    found = {}
+    for target in IMMS_TARGETS:
+        params = {"patient.identifier": f"https://fhir.nhs.uk/Id/nhs-number|{SANDBOX_NHS_NUMBER}", "-immunization.target": target}
+        req = urllib.request.Request(f"{NHS_IMMS_BASE}/Immunization?{urlencode(params)}",
+                                     headers={"Accept": "application/fhir+json", "X-Request-ID": str(uuid.uuid4())})
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            bundle = json.load(resp)
+        for entry in bundle.get("entry") or []:
+            resource = entry.get("resource") or {}
+            if resource.get("resourceType") == "Immunization":
+                found[resource.get("id")] = resource  # the same record can come back for several targets
+    return list(found.values())
+
+
+def summarise_immunisations(records):
+    """(FHIR Immunization, where it came from) pairs -> our profile's vaccine history, plus anything else on record."""
+    totals, other = {}, []
+    for imm, origin in records:
+        if imm.get("status") != "completed":
+            continue
+        month = (imm.get("occurrenceDateTime") or "")[:7]  # "YYYY-MM", like the profile's month inputs
+        key = immunisation_key(imm)
+        if not key:
+            other.append({"name": immunisation_name(imm), "date": month, "origin": origin})
+            continue
+        t = totals.setdefault(key, {"count": 0, "highestDose": 0, "date": "", "origins": []})
+        t["count"] += 1
+        doses = [p.get("doseNumberPositiveInt") or 0 for p in imm.get("protocolApplied") or []]
+        t["highestDose"] = max([t["highestDose"], *doses])
+        t["date"] = max(t["date"], month)
+        if origin not in t["origins"]:
+            t["origins"].append(origin)
+    vaccines = {}
+    for key, t in totals.items():
+        doses = max(t["count"], t["highestDose"])
+        vaccines[key] = {
+            "status": "complete" if doses >= DOSES_FOR_FULL_COURSE[key] else "partial",
+            "date": t["date"],
+            "doses": doses,
+            "source": "nhs",
+            "origin": " + ".join(t["origins"]),
+        }
+    return vaccines, sorted(other, key=lambda o: o["date"], reverse=True)
+
+
+def build_nhs_record():
+    records, sandbox = [], "connected"
+    try:
+        records += [(imm, "NHS sandbox") for imm in sandbox_immunisations()]
+    except (OSError, ValueError) as err:  # network problems, HTTP errors and bad JSON
+        sandbox = f"unavailable ({err})"
+    sample = json.loads(SAMPLE_RECORD.read_text())
+    resources = [e["resource"] for e in sample["entry"]]
+    records += [(r, "sample record") for r in resources if r["resourceType"] == "Immunization"]
+    person = next(r for r in resources if r["resourceType"] == "Patient")
+    name = person["name"][0]
+    vaccines, other = summarise_immunisations(records)
+    return {
+        "patient": {"name": " ".join([*name.get("given", []), name.get("family", "")]).strip(),
+                    "nhsNumber": person["identifier"][0]["value"]},
+        "vaccines": vaccines,
+        "other": other,
+        "sandbox": sandbox,
+        "isDemo": True,
+    }
+
+
 class FileCache:
     """One JSON file per key, reused until it is older than `ttl` seconds. Replace with Tiger Cloud later."""
 
@@ -503,6 +617,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self.news(parse_qs(url.query))
         if url.path == "/api/clinics":
             return self.clinics(parse_qs(url.query))
+        if url.path == "/api/nhs-record":
+            return self.send_json(200, build_nhs_record())
         return super().do_GET()
 
     def news(self, query):

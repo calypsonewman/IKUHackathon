@@ -174,7 +174,9 @@ details.history { margin-top: 12px; }
 .why { font-size: 0.85rem; color: var(--dark-blue); }
 .mine { font-weight: bold; }
 .mine.covered { color: var(--green); }
-.mine.booster, .mine.incomplete { color: #8a4b00; }
+.mine.booster, .mine.incomplete, .mine.check { color: #8a4b00; }
+.mine strong { color: var(--text); }
+.nhs-imported { margin: 0 0 8px; padding-left: 18px; font-size: 0.92rem; }
 details.personal { border-color: var(--blue); }
 .alert { margin: 0 0 8px; padding: 8px 10px; border-radius: 4px; border-left: 4px solid var(--blue); background: #eef7ff; font-size: 0.92rem; }
 .alert.warn { border-left-color: var(--l2); background: #fdf4e6; }

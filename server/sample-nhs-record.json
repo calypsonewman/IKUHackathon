@@ -1,0 +1,498 @@
+{
+  "resourceType": "Bundle",
+  "type": "searchset",
+  "_comment": "SAMPLE DATA for a fictional patient, in the same FHIR R4 shape the NHS Immunisation FHIR API returns. The NHS sandbox only ever returns one RSV record, so this lets the demo show routine vaccines. Remove when connecting to real NHS data.",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "sample-patient",
+        "identifier": [
+          {
+            "system": "https://fhir.nhs.uk/Id/nhs-number",
+            "value": "9000000009"
+          }
+        ],
+        "name": [
+          {
+            "given": [
+              "Demo"
+            ],
+            "family": "Patient"
+          }
+        ],
+        "birthDate": "1998-05-14"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Immunization",
+        "id": "sample-dtp-1",
+        "status": "completed",
+        "vaccineCode": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "display": "DTaP/IPV/Hib (6-in-1) vaccine"
+            }
+          ]
+        },
+        "patient": {
+          "reference": "Patient/sample-patient"
+        },
+        "occurrenceDateTime": "1998-07-16T10:00:00+00:00",
+        "performer": [
+          {
+            "actor": {
+              "type": "Organization",
+              "display": "Demo GP Surgery"
+            }
+          }
+        ],
+        "protocolApplied": [
+          {
+            "targetDisease": [
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "397428000",
+                    "display": "Diphtheria (disorder)"
+                  }
+                ]
+              },
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "76902006",
+                    "display": "Tetanus (disorder)"
+                  }
+                ]
+              },
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "398102009",
+                    "display": "Acute poliomyelitis (disorder)"
+                  }
+                ]
+              }
+            ],
+            "doseNumberPositiveInt": 1
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Immunization",
+        "id": "sample-dtp-2",
+        "status": "completed",
+        "vaccineCode": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "display": "DTaP/IPV/Hib (6-in-1) vaccine"
+            }
+          ]
+        },
+        "patient": {
+          "reference": "Patient/sample-patient"
+        },
+        "occurrenceDateTime": "1998-08-13T10:00:00+00:00",
+        "performer": [
+          {
+            "actor": {
+              "type": "Organization",
+              "display": "Demo GP Surgery"
+            }
+          }
+        ],
+        "protocolApplied": [
+          {
+            "targetDisease": [
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "397428000",
+                    "display": "Diphtheria (disorder)"
+                  }
+                ]
+              },
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "76902006",
+                    "display": "Tetanus (disorder)"
+                  }
+                ]
+              },
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "398102009",
+                    "display": "Acute poliomyelitis (disorder)"
+                  }
+                ]
+              }
+            ],
+            "doseNumberPositiveInt": 2
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Immunization",
+        "id": "sample-dtp-3",
+        "status": "completed",
+        "vaccineCode": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "display": "DTaP/IPV/Hib (6-in-1) vaccine"
+            }
+          ]
+        },
+        "patient": {
+          "reference": "Patient/sample-patient"
+        },
+        "occurrenceDateTime": "1998-09-10T10:00:00+00:00",
+        "performer": [
+          {
+            "actor": {
+              "type": "Organization",
+              "display": "Demo GP Surgery"
+            }
+          }
+        ],
+        "protocolApplied": [
+          {
+            "targetDisease": [
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "397428000",
+                    "display": "Diphtheria (disorder)"
+                  }
+                ]
+              },
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "76902006",
+                    "display": "Tetanus (disorder)"
+                  }
+                ]
+              },
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "398102009",
+                    "display": "Acute poliomyelitis (disorder)"
+                  }
+                ]
+              }
+            ],
+            "doseNumberPositiveInt": 3
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Immunization",
+        "id": "sample-mmr-1",
+        "status": "completed",
+        "vaccineCode": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "display": "MMR vaccine"
+            }
+          ]
+        },
+        "patient": {
+          "reference": "Patient/sample-patient"
+        },
+        "occurrenceDateTime": "1999-06-03T10:00:00+00:00",
+        "performer": [
+          {
+            "actor": {
+              "type": "Organization",
+              "display": "Demo GP Surgery"
+            }
+          }
+        ],
+        "protocolApplied": [
+          {
+            "targetDisease": [
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "14189004",
+                    "display": "Measles (disorder)"
+                  }
+                ]
+              },
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "36989005",
+                    "display": "Mumps (disorder)"
+                  }
+                ]
+              },
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "36653000",
+                    "display": "Rubella (disorder)"
+                  }
+                ]
+              }
+            ],
+            "doseNumberPositiveInt": 1
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Immunization",
+        "id": "sample-dtp-4",
+        "status": "completed",
+        "vaccineCode": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "display": "DTaP/IPV (4-in-1) pre-school booster"
+            }
+          ]
+        },
+        "patient": {
+          "reference": "Patient/sample-patient"
+        },
+        "occurrenceDateTime": "2001-09-20T10:00:00+00:00",
+        "performer": [
+          {
+            "actor": {
+              "type": "Organization",
+              "display": "Demo GP Surgery"
+            }
+          }
+        ],
+        "protocolApplied": [
+          {
+            "targetDisease": [
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "397428000",
+                    "display": "Diphtheria (disorder)"
+                  }
+                ]
+              },
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "76902006",
+                    "display": "Tetanus (disorder)"
+                  }
+                ]
+              },
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "398102009",
+                    "display": "Acute poliomyelitis (disorder)"
+                  }
+                ]
+              }
+            ],
+            "doseNumberPositiveInt": 4
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Immunization",
+        "id": "sample-mmr-2",
+        "status": "completed",
+        "vaccineCode": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "display": "MMR vaccine"
+            }
+          ]
+        },
+        "patient": {
+          "reference": "Patient/sample-patient"
+        },
+        "occurrenceDateTime": "2001-09-20T10:00:00+00:00",
+        "performer": [
+          {
+            "actor": {
+              "type": "Organization",
+              "display": "Demo GP Surgery"
+            }
+          }
+        ],
+        "protocolApplied": [
+          {
+            "targetDisease": [
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "14189004",
+                    "display": "Measles (disorder)"
+                  }
+                ]
+              },
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "36989005",
+                    "display": "Mumps (disorder)"
+                  }
+                ]
+              },
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "36653000",
+                    "display": "Rubella (disorder)"
+                  }
+                ]
+              }
+            ],
+            "doseNumberPositiveInt": 2
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Immunization",
+        "id": "sample-dtp-5",
+        "status": "completed",
+        "vaccineCode": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "display": "Td/IPV (3-in-1) teenage booster"
+            }
+          ]
+        },
+        "patient": {
+          "reference": "Patient/sample-patient"
+        },
+        "occurrenceDateTime": "2012-09-27T10:00:00+00:00",
+        "performer": [
+          {
+            "actor": {
+              "type": "Organization",
+              "display": "Demo School Immunisation Team"
+            }
+          }
+        ],
+        "protocolApplied": [
+          {
+            "targetDisease": [
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "397428000",
+                    "display": "Diphtheria (disorder)"
+                  }
+                ]
+              },
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "76902006",
+                    "display": "Tetanus (disorder)"
+                  }
+                ]
+              },
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "398102009",
+                    "display": "Acute poliomyelitis (disorder)"
+                  }
+                ]
+              }
+            ],
+            "doseNumberPositiveInt": 5
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Immunization",
+        "id": "sample-men-1",
+        "status": "completed",
+        "vaccineCode": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "display": "MenACWY vaccine"
+            }
+          ]
+        },
+        "patient": {
+          "reference": "Patient/sample-patient"
+        },
+        "occurrenceDateTime": "2012-09-27T10:00:00+00:00",
+        "performer": [
+          {
+            "actor": {
+              "type": "Organization",
+              "display": "Demo School Immunisation Team"
+            }
+          }
+        ],
+        "protocolApplied": [
+          {
+            "targetDisease": [
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "23511006",
+                    "display": "Meningococcal infectious disease (disorder)"
+                  }
+                ]
+              }
+            ],
+            "doseNumberPositiveInt": 1
+          }
+        ]
+      }
+    }
+  ]
+}

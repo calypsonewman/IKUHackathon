@@ -56,7 +56,15 @@ The **Your trip & health** card at the top takes departure date, length of stay,
 
 Details are kept in `sessionStorage` only (cleared when the tab closes).
 
-**NHS record linking is a demo.** `js/nhs.js` returns a sample record. A real integration needs NHS login (OpenID Connect) and onboarding to an NHS API (e.g. Immunisation History FHIR API / GP Connect), with a backend to hold client credentials. Swap `fetchRecord()` for that flow; the rest of the app already consumes the mapped result.
+**NHS record linking is a demo.** "Link NHS record" calls `server/app.py` (`/api/nhs-record`), which:
+
+- calls the real **NHS Immunisation FHIR API sandbox** (open access, no key) for the sandbox's test patient, for the vaccine types that match this app: diphtheria/tetanus/polio (`3IN1`), `MMR` and `MENACWY`. The NHS lists all three as *in development* for this API (Beta covers RSV, flu and HPV), and doesn't say how far back records go;
+- adds `server/sample-nhs-record.json`, a **sample record for a fictional patient** in the same FHIR R4 format, because the sandbox only ever returns one RSV record;
+- converts both with the same code (by target-disease SNOMED code, falling back to the disease name) into the profile's vaccine history, counting doses against the UK schedule (5 for diphtheria/tetanus/polio, 2 for MMR, 1 for MenACWY). Anything else on the record is listed separately.
+
+The profile shows which items came from the sandbox and which from the sample. Routine vaccinations are held in each patient's GP record, which patients can see in the NHS App (Vaccinations > Your vaccinations); the GP record itself (GP Connect) is only available to health and care organisations. The Immunisation API does not cover travel vaccines (hepatitis A, typhoid, rabies, yellow fever, etc.), so users add those themselves.
+
+Going live needs NHS login (identity verified to P9) and NHS onboarding for the Immunisation FHIR API, which is currently only open to health and care organisations. Only the server would change: replace the sandbox call and drop the sample file.
 
 ### Latest news (Gemini)
 

@@ -10,6 +10,12 @@ const VACCINES = {
     query: 'GP surgery',
     nhsFree: true,
   },
+  mmr: {
+    name: 'MMR (measles, mumps, rubella)',
+    info: 'Measles is rising in many countries, including Europe. Two doses give lifelong protection. If you are not sure you had both, a catch-up dose is free from your GP.',
+    query: 'GP surgery',
+    nhsFree: true,
+  },
   hepA: {
     name: 'Hepatitis A',
     info: 'Spread through contaminated food and water. One dose protects for about a year; a booster 6–12 months later gives long-term protection.',
