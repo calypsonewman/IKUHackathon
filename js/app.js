@@ -1,6 +1,7 @@
 (async function main() {
   const COLORS = ['#d6e9f8', '#8fc1ea', '#f0a64a', '#d5281b'];
   const panel = document.getElementById('panel');
+  const emptyPanel = panel.innerHTML; // the starting "Choose a destination" message, used by resetView()
   const searchIndex = new Map(); // label -> { country, city, layer }
   let selectedLayer = null;
   let zoomedTo = null; // the country layer or city the map is currently zoomed in on
@@ -57,7 +58,10 @@
       layer.on({
         mouseover: () => layer !== selectedLayer && layer.setStyle({ weight: 2, color: '#003087' }),
         mouseout: () => layer !== selectedLayer && layer.setStyle(baseStyle(country)),
-        click: () => toggle(layer, () => select(country, null, layer)),
+        click: (e) => {
+          L.DomEvent.stopPropagation(e); // so the map doesn't also treat this as an ocean click
+          toggle(layer, () => select(country, null, layer));
+        },
       });
       // Keep the largest shape per name (e.g. Australia rather than Ashmore and Cartier Is.)
       const prev = searchIndex.get(country.name);
@@ -111,6 +115,20 @@
     } else {
       selectIt();
     }
+  }
+
+  // Clicking the ocean (anywhere that isn't a country or city) resets the page to how it first loaded.
+  // Dragging the map doesn't count as a click, so panning around is unaffected.
+  map.on('click', resetView);
+
+  function resetView() {
+    highlight(null);
+    current = null;
+    zoomedTo = null;
+    panel.innerHTML = emptyPanel;
+    searchInput.value = '';
+    Clinics.setVaccineOptions(Object.keys(VACCINES).filter((k) => k !== 'routine'));
+    map.flyTo(WORLD_VIEW.center, WORLD_VIEW.zoom, { duration: 1 });
   }
 
   // If the user zooms all the way out themselves, the next click on that country should zoom in again.
