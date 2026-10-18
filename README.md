@@ -74,3 +74,12 @@ Each destination has a **📰 Latest news** dropdown. When opened, `server/app.p
 - The API key stays on the server; the browser never sees it. The server refuses to serve `server/` and dotfiles.
 - News is shown separately and labelled as an AI summary; it never changes the vaccine advice.
 - Later: replace the file cache (`NewsCache`) with Tiger Cloud.
+
+### Deploy to jabmap.health (Render + GoDaddy)
+
+1. Sign in to [Render](https://render.com) with GitHub, then **New > Blueprint** and pick this repo. Render reads `render.yaml`.
+2. When asked, paste `GEMINI_API_KEY`, `NHS_API_KEY` and `GOOGLE_PLACES_API_KEY` (from your `server/.env`). Wait for the deploy to go live at `https://jabmap.onrender.com` (or similar) and check it works.
+3. In Render: your service > **Settings > Custom Domains**, add `jabmap.health` and `www.jabmap.health`. Render shows the DNS records to add.
+4. In GoDaddy: **My Products > jabmap.health > DNS**, add those records (an **A** record for `@` and a **CNAME** for `www`), removing any existing GoDaddy "parked" A record for `@`. Back in Render, click **Verify**. HTTPS is set up automatically once DNS works (minutes to a few hours).
+
+Notes: the free plan sleeps when unused, so open the site a minute before demoing. On a public server everyone shares one Google ratings cap (`GOOGLE_DAILY_LIMIT`), and the NHS APIs used are test environments.
