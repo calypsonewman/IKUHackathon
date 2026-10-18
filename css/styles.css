@@ -211,3 +211,4 @@ details.personal { border-color: var(--blue); }
 .ai-note { font-size: 0.8rem; color: var(--muted); background: var(--bg); padding: 8px 10px; border-radius: 4px; }
 .loading { color: var(--muted); font-style: italic; }
 .news-src { margin: 4px 0 0; font-size: 0.8rem; }
+.sw.unknown { background: #c4c9cc; }

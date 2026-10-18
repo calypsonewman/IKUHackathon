@@ -578,6 +578,7 @@ const CITIES = [
 
 // Turn raw data into the advice shown in the panel.
 function buildAdvice(country, city) {
+  if (country.unknown) return estimateFromNeighbours(country);
   const p = PROFILES[country.profile] || PROFILES.westEU;
   const most = new Set(['routine', ...(country.most || p.most), ...(country.addMost || [])]);
   const some = new Set([...(country.some || p.some), ...(country.addSome || [])]);
@@ -613,6 +614,73 @@ function buildAdvice(country, city) {
     health,
     travel,
     fcdoUrl,
+  };
+}
+
+// A region with no entry above: combine its neighbours' advice (country.neighbours is set by app.js).
+// Errs on the side of caution: a vaccine any neighbour recommends is listed, and the worst yellow fever
+// and malaria risk wins. Returns the same shape as buildAdvice(), so the panel and personalisation just work.
+const YF_ORDER = ['none', 'cert', 'some', 'most'];
+const MALARIA_ORDER = ['none', 'some', 'high'];
+
+function estimateFromNeighbours(country) {
+  const neighbours = country.neighbours || [];
+  const all = neighbours.map((n) => buildAdvice(n));
+  const total = all.length;
+  const names = neighbours.map((n) => n.name).join(', ');
+
+  // How many neighbours list each vaccine for "most" and for "some" travellers.
+  const counts = {};
+  all.forEach((a) => {
+    a.most.forEach((k) => { (counts[k] = counts[k] || { most: 0, some: 0 }).most++; });
+    a.some.forEach((k) => { (counts[k] = counts[k] || { most: 0, some: 0 }).some++; });
+  });
+  const byCount = (k1, k2) => (counts[k2].most + counts[k2].some) - (counts[k1].most + counts[k1].some);
+  const keys = Object.keys(counts).filter((k) => k !== 'routine').sort(byCount);
+  const most = ['routine', ...keys.filter((k) => counts[k].most > 0)];
+  const some = keys.filter((k) => counts[k].most === 0);
+
+  const notes = {};
+  keys.forEach((k) => {
+    const { most: m, some: s } = counts[k];
+    notes[k] = m
+      ? `Recommended for most travellers in ${m} of ${total} neighbouring countries${s ? ` (and for some travellers in ${s} more)` : ''}.`
+      : `Considered for some travellers in ${s} of ${total} neighbouring countries.`;
+  });
+
+  const worst = (order, values) => values.reduce((w, v) => (order.indexOf(v) > order.indexOf(w) ? v : w), order[0]);
+  const yf = worst(YF_ORDER, all.map((a) => a.yf));
+  const malaria = worst(MALARIA_ORDER, all.map((a) => a.malaria));
+  const malariaIn = neighbours.filter((n, i) => all[i].malaria !== 'none').map((n) => n.name);
+
+  const health = [
+    ...(malariaIn.length ? [`Malaria: present in neighbouring countries (${malariaIn.join(", ")}). Ask a travel clinic whether you need antimalarial tablets.`] : []),
+    'Drink bottled or treated water and avoid insect bites until you have checked the local risks.',
+    'See a GP practice nurse, pharmacist or travel clinic ideally 6–8 weeks before you travel.',
+  ];
+  const travel = [
+    total
+      ? `This region is not in our database. The advice here is estimated from neighbouring countries: ${names}.`
+      : 'This region is not in our database, and we could not find any nearby countries to estimate from.',
+    'Check the official TravelHealthPro and FCDO advice before you travel.',
+    'Emergency number: check before you travel.',
+    'Get comprehensive travel insurance that covers any pre-existing medical conditions.',
+  ];
+  if (yf === 'cert') travel.push('A yellow fever certificate may be required in this area. Check entry requirements.');
+
+  return {
+    title: country.name,
+    region: 'Region not in database',
+    estimated: true,
+    basedOn: names,
+    most,
+    some,
+    notes,
+    malaria,
+    yf,
+    health,
+    travel,
+    fcdoUrl: 'https://www.gov.uk/foreign-travel-advice',
   };
 }
 

@@ -1,5 +1,6 @@
 (async function main() {
   const COLORS = ['#d6e9f8', '#8fc1ea', '#f0a64a', '#d5281b'];
+  const UNKNOWN_COLOR = '#c4c9cc'; // regions with no entry in data.js
   const panel = document.getElementById('panel');
   const emptyPanel = panel.innerHTML; // the starting "Choose a destination" message, used by resetView()
   const searchIndex = new Map(); // label -> { country, city, layer }
@@ -35,8 +36,9 @@
 
   function countryFor(feature) {
     const geoName = feature.properties.name;
+    // Not in data.js: flag it rather than guess, so the panel can say so and estimate from neighbours.
     const base = (feature.id && COUNTRIES[feature.id]) || NAMED_COUNTRIES[geoName] ||
-      { code: feature.id || geoName, profile: 'westEU' };
+      { code: feature.id || geoName, unknown: true };
     return { ...base, name: base.name || geoName };
   }
 
@@ -46,14 +48,16 @@
   };
 
   const baseStyle = (country) => ({
-    fillColor: COLORS[riskLevel(country)], fillOpacity: 0.85, color: '#fff', weight: 0.6,
+    fillColor: country.unknown ? UNKNOWN_COLOR : COLORS[riskLevel(country)], fillOpacity: 0.85, color: '#fff', weight: 0.6,
   });
 
+  const layers = []; // in the same order as the map file's shapes, for the neighbour lookup below
   const countriesLayer = L.geoJSON(geo, {
     style: (f) => baseStyle(countryFor(f)),
     onEachFeature: (f, layer) => {
       const country = countryFor(f);
       layer.country = country;
+      layers.push(layer);
       layer.bindTooltip(country.name, { sticky: true, className: 'country-tip' });
       layer.on({
         mouseover: () => layer !== selectedLayer && layer.setStyle({ weight: 2, color: '#003087' }),
@@ -68,6 +72,33 @@
       if (!prev || area(layer) > area(prev.layer)) searchIndex.set(country.name, { country, layer });
     },
   }).addTo(map);
+  findNeighbours();
+
+  // For each region not in data.js, list the known countries around it (used by estimateFromNeighbours).
+  // topojson.neighbors finds shapes that share a border. Islands have none, so they use the nearest countries.
+  function findNeighbours() {
+    const unknown = layers.filter((l) => l.country.unknown);
+    if (!unknown.length) return;
+    document.getElementById('legend-unknown').hidden = false;
+    const touching = topojson.neighbors(topo.objects.countries.geometries);
+    const centre = (layer) => mainBounds(layer).getCenter();
+    unknown.forEach((layer) => {
+      let near = touching[layers.indexOf(layer)].map((i) => layers[i]);
+      if (!near.some((l) => !l.country.unknown)) {
+        near = layers
+          .filter((l) => l !== layer && !l.country.unknown)
+          .map((l) => ({ l, km: centre(layer).distanceTo(centre(l)) / 1000 }))
+          .filter((x) => x.km < 1500)
+          .sort((a, b) => a.km - b.km)
+          .slice(0, 3)
+          .map((x) => x.l);
+      }
+      const seen = new Set(); // a country can appear twice (e.g. separate shapes for its islands)
+      layer.country.neighbours = near
+        .map((l) => l.country)
+        .filter((c) => !c.unknown && !seen.has(c.code) && seen.add(c.code));
+    });
+  }
 
   // Cities
   map.createPane('cities').style.zIndex = 450; // keep cities above highlighted countries
@@ -173,9 +204,9 @@
   function vaccinesHtml(a, me) {
     if (!me) {
       const someHtml = a.some.length
-        ? `<p class="vax-group">Consider for some travellers</p>${a.some.map((k) => vaxItem(k, a, 'some')).join('')}`
+        ? `<p class="vax-group">${a.estimated ? 'Considered in some neighbouring countries' : 'Consider for some travellers'}</p>${a.some.map((k) => vaxItem(k, a, 'some')).join('')}`
         : '';
-      return `<p class="vax-group">Recommended for most travellers</p>
+      return `<p class="vax-group">${a.estimated ? 'Recommended in neighbouring countries' : 'Recommended for most travellers'}</p>
         ${a.most.map((k) => vaxItem(k, a, 'most')).join('')}
         ${someHtml}
         <p class="small">"Some travellers" depends on your activities, length of stay and medical history.
@@ -214,7 +245,12 @@
     else if (a.yf === 'cert') badges.push('<span class="badge">Yellow fever certificate may be required</span>');
     if (a.malaria === 'high') badges.push('<span class="badge danger">High malaria risk</span>');
     else if (a.malaria === 'some') badges.push('<span class="badge warn">Malaria in some areas</span>');
-    else badges.push('<span class="badge ok">No malaria risk</span>');
+    else if (!a.estimated) badges.push('<span class="badge ok">No malaria risk</span>'); // never claim "no risk" from a guess
+    const estimateBanner = a.estimated ? `<p class="alert warn"><strong>Region not in database.</strong>
+      We don't have travel health advice for ${country.name} yet.
+      ${a.basedOn ? `The vaccines below are a suggested list combined from neighbouring countries: <strong>${a.basedOn}</strong>.` : ''}
+      Check <a href="https://travelhealthpro.org.uk/countries" target="_blank" rel="noopener">TravelHealthPro</a>
+      and speak to a travel clinic before you go.</p>` : '';
     const vaxCount = me ? me.recommended.length + me.consider.length - me.covered.length : a.most.length + a.some.length;
     const scroll = panel.scrollTop;
 
@@ -222,6 +258,7 @@
       <h2>${a.title}</h2>
       <p class="region">${a.region}</p>
       <div class="badges">${badges.join('')}</div>
+      ${estimateBanner}
       ${alertsHtml(me)}
 
       <details open>
