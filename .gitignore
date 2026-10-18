@@ -155,3 +155,6 @@ config.js
 server/.env
 server/cache/
 __pycache__/
+
+# macOS Finder metadata
+.DS_Store
