@@ -83,3 +83,11 @@ Each destination has a **📰 Latest news** dropdown. When opened, `server/app.p
 4. In GoDaddy: **My Products > jabmap.health > DNS**, add those records (an **A** record for `@` and a **CNAME** for `www`), removing any existing GoDaddy "parked" A record for `@`. Back in Render, click **Verify**. HTTPS is set up automatically once DNS works (minutes to a few hours).
 
 Notes: the free plan sleeps when unused, so open the site a minute before demoing. On a public server everyone shares one Google ratings cap (`GOOGLE_DAILY_LIMIT`), and the NHS APIs used are test environments.
+
+### Insurance (guidance only)
+
+Each destination has a **🛡️ Insurance** dropdown. JabMap does not recommend or sell insurance (in the UK that is FCA-regulated); it gives guidance and points to MoneyHelper for people with medical conditions.
+
+- **Entry requirements** (`insurance` option on a country in `js/data.js`), each with its source and the date it was checked: Kenya (FCDO entry requirements) and Cuba (Government of Canada; the FCDO page doesn't mention it). Add more only with a source.
+- **GHIC**: `GHIC` in `js/data.js` lists where a UK Global Health Insurance Card works, from the NHSBSA "Where you can use your card" page (EU, Iceland, Liechtenstein, Norway, Montenegro, Crown Dependencies, St Helena; Switzerland with nationality conditions; Australia as proof for Medicare).
+- **Checklist** for any policy, plus **personal notes** from the trip & health profile (medical conditions, pregnancy, age, altitude, long stays, aid work, and following vaccine/antimalarial advice).
