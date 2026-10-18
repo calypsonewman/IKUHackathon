@@ -29,11 +29,10 @@ const Profile = (() => {
     chronic: 'Long-term condition (e.g. asthma, diabetes, heart or kidney disease)',
     dengue: 'Had dengue fever before',
   };
-  const NHS_CONDITION_MAP = { asthma: 'chronic', diabetes: 'chronic', pregnancy: 'pregnant' };
-
   const HISTORY_LABELS = { routine: 'Diphtheria, tetanus & polio' };
   // How long a completed course is assumed to protect, in years (simplified UK guidance).
-  const VALIDITY_YEARS = { routine: 10, hepA: 25, hepB: Infinity, typhoid: 3, rabies: Infinity, je: 1, tbe: 3, yf: Infinity, cholera: 2, menacwy: 5 };
+  const VALIDITY_YEARS = { routine: 10, mmr: Infinity, hepA: 25, hepB: Infinity, typhoid: 3, rabies: Infinity, je: 1, tbe: 3, yf: Infinity, cholera: 2, menacwy: 5 };
+  const NHS_APP_HELP = 'https://www.nhs.uk/nhs-app/help/vaccinations/view-vaccinations/';
   const SINGLE_DOSE = new Set(['typhoid', 'yf', 'menacwy']);
 
   // Which activities make a "some travellers" vaccine recommended for this person.
@@ -88,7 +87,7 @@ const Profile = (() => {
   function historyRows() {
     return Object.keys(VACCINES).map((k) => {
       const rec = state.vaccines[k] || { status: '', date: '' };
-      const fromNhs = rec.source === 'nhs' ? '<span class="nhs-tag" title="From your NHS record">NHS</span>' : '';
+      const fromNhs = rec.source === 'nhs' ? `<span class="nhs-tag" title="From your NHS record (${rec.origin || 'NHS'})">NHS</span>` : '';
       return `<tr data-vax="${k}">
         <th scope="row">${HISTORY_LABELS[k] || VACCINES[k].name} ${fromNhs}</th>
         <td><select aria-label="${VACCINES[k].name} status">
@@ -162,17 +161,30 @@ const Profile = (() => {
   function renderNhsBox(mode) {
     const box = document.getElementById('nhs-box');
     if (state.nhs) {
+      const imported = Object.entries(state.vaccines).filter(([, v]) => v.source === 'nhs');
+      const fmt = (ym) => (ym ? fmtMonth(ym) : 'date unknown');
+      const sandbox = state.nhs.sandbox === 'connected'
+        ? '✓ Connected to the NHS Immunisation API (sandbox test environment).'
+        : `NHS Immunisation API sandbox ${state.nhs.sandbox}. Showing the sample record only.`;
       box.innerHTML = `<p><strong>✓ NHS record linked</strong> (${state.nhs.patient.name})${NhsRecord.isDemo ? ' <span class="demo-tag">DEMO DATA</span>' : ''}</p>
-        <p class="small">Vaccinations and conditions were imported below. You can edit them.</p>
+        <ul class="nhs-imported">${imported.map(([k, v]) => `<li>${HISTORY_LABELS[k] || VACCINES[k].name}:
+          ${v.doses ? `${v.doses} dose${v.doses === 1 ? '' : 's'}, ` : ''}last ${fmt(v.date)} <span class="small">(${v.origin || 'NHS'})</span></li>`).join('')}</ul>
+        ${state.nhs.other?.length ? `<p class="small">Also on this record: ${state.nhs.other.map((o) =>
+          `${o.name} (${fmt(o.date)}, ${o.origin})`).join('; ')}.</p>` : ''}
+        <p class="small">${sandbox} Imported vaccinations are in the history below and you can edit them.</p>
+        <p class="small">About this data: the NHS lists diphtheria, tetanus &amp; polio, MMR and MenACWY as <em>in development</em>
+          for its Immunisation API, and older childhood vaccinations may not be included. Your full history is held in your
+          GP record (see the NHS App: Vaccinations, then Your vaccinations). Travel vaccines are not covered, so add those yourself.</p>
         <button type="button" class="link-btn" id="nhs-unlink">Unlink NHS record</button>`;
       box.querySelector('#nhs-unlink').addEventListener('click', unlinkNhs);
       return;
     }
     if (mode === 'consent') {
       box.innerHTML = `<p><strong>Share your NHS record with this app?</strong></p>
-        <p class="small">We will read your <strong>vaccination history</strong> and <strong>relevant conditions</strong> to personalise your advice.
+        <p class="small">We will read your <strong>vaccination history</strong> to personalise your advice.
         This stays in this browser tab only.</p>
-        ${NhsRecord.isDemo ? '<p class="small demo-note">Prototype: this loads a <strong>sample record</strong>. Real NHS login is not connected yet.</p>' : ''}
+        ${NhsRecord.isDemo ? `<p class="small demo-note">Prototype: this calls the NHS Immunisation API's <strong>sandbox</strong>
+          (test environment) and adds a <strong>sample record</strong> for a fictional patient. Real NHS login is not connected yet.</p>` : ''}
         <div class="row"><button type="button" class="btn" id="nhs-agree">Agree and link</button>
         <button type="button" class="link-btn" id="nhs-cancel">Cancel</button></div>`;
       box.querySelector('#nhs-agree').addEventListener('click', linkNhs);
@@ -180,9 +192,14 @@ const Profile = (() => {
       return;
     }
     if (mode === 'loading') { box.innerHTML = '<p>Connecting to your NHS record…</p>'; return; }
-    box.innerHTML = `<p><strong>Link your NHS record</strong> to fill in your vaccination history automatically.</p>
+    box.innerHTML = `<p><strong>Link your NHS record</strong> to see how the app can check your routine UK vaccines
+      (diphtheria, tetanus &amp; polio, MMR and MenACWY) for you.</p>
+      <p class="small">The NHS Immunisation API is still adding these vaccine types, so this is a demo for now.</p>
       <button type="button" class="btn btn-secondary" id="nhs-link">Link NHS record${NhsRecord.isDemo ? ' (demo)' : ''}</button>
-      <p class="small">Or fill in your details below.</p>`;
+      <p class="small">Or fill in your details below. You can see your own vaccination record in the NHS App:
+        select <strong>Vaccinations</strong>, then <strong>Your vaccinations</strong>
+        (<a href="${NHS_APP_HELP}" target="_blank" rel="noopener">how to find it ↗</a>).
+        It depends on your GP surgery, and vaccines given privately may not show.</p>`;
     box.querySelector('#nhs-link').addEventListener('click', () => renderNhsBox('consent'));
   }
 
@@ -190,10 +207,8 @@ const Profile = (() => {
     renderNhsBox('loading');
     try {
       const rec = await NhsRecord.fetchRecord();
-      state.nhs = { patient: rec.patient };
-      Object.entries(rec.vaccines).forEach(([k, v]) => { state.vaccines[k] = v; });
-      const conds = rec.conditions.map((c) => NHS_CONDITION_MAP[c] || c).filter((c) => CONDITIONS[c]);
-      state.conditions = [...new Set([...state.conditions, ...conds])];
+      state.nhs = { patient: rec.patient, other: rec.other || [], sandbox: rec.sandbox };
+      Object.entries(rec.vaccines).forEach(([k, v]) => { if (VACCINES[k]) state.vaccines[k] = v; });
       save();
       renderForm();
       document.querySelector('#profile-body details.history').open = true;
@@ -227,14 +242,31 @@ const Profile = (() => {
 
   const fmtMonth = (ym) => new Date(ym + '-01').toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
 
+  // "Routine UK vaccines" covers two separate records: diphtheria/tetanus/polio and MMR.
+  // Show both, and flag the routine item with the worst of the two so nothing is wrongly shown as covered.
   function vaccineStatus(key, refDate) {
+    return key === 'routine' ? routineStatus(refDate) : singleStatus(key, refDate);
+  }
+
+  function routineStatus(refDate) {
+    const parts = [['Diphtheria, tetanus &amp; polio', singleStatus('routine', refDate)], ['MMR', singleStatus('mmr', refDate)]];
+    if (parts.every(([, s]) => !s)) return null;
+    const states = parts.map(([, s]) => (s ? s.state : 'check'));
+    const state = ['booster', 'incomplete', 'check'].find((s) => states.includes(s)) || 'covered';
+    const text = parts.map(([name, s]) => `<strong>${name}:</strong> ${s ? s.text : 'not recorded. Check your NHS App or ask your GP.'}`).join('<br>');
+    return { state, text };
+  }
+
+  function singleStatus(key, refDate) {
     const rec = state.vaccines[key];
     if (!rec || !rec.status) return null;
     const when = rec.date ? ` (last dose ${fmtMonth(rec.date)})` : '';
     if (rec.status === 'partial' && !SINGLE_DOSE.has(key)) {
-      return { state: 'incomplete', text: key === 'hepA'
-        ? `One dose given${when}. A booster gives long-term protection.`
-        : `Course started${when}. You may need to finish it.` };
+      const partialText = {
+        hepA: `One dose given${when}. A booster gives long-term protection.`,
+        mmr: `One dose recorded${when}. A second dose is free from your GP and gives lifelong protection.`,
+      };
+      return { state: 'incomplete', text: partialText[key] || `Course started${when}. You may need to finish it.` };
     }
     if (!rec.date) return { state: 'covered', text: 'Recorded as complete. Check the date with your clinic.' };
     const years = (refDate - new Date(rec.date + '-01')) / (365.25 * 864e5);

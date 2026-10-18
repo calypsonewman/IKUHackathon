@@ -93,6 +93,7 @@
     covered: '<span class="chip ok">✓ Protected</span>',
     booster: '<span class="chip warn">Booster due</span>',
     incomplete: '<span class="chip warn">Course incomplete</span>',
+    check: '<span class="chip warn">Check record</span>',
   };
 
   function vaxItem(key, a, group, extra = {}) {
