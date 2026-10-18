@@ -1,5 +1,5 @@
 // Travel health dataset.
-// Guidance is summarised from UK sources (NaTHNaC / TravelHealthPro, NHS fitfortravel, FCDO)
+// Guidance is summarised from UK sources (NaTHNaC / TravelHealthPro and FCDO)
 // and is intentionally general. Users are always pointed to the official pages and a clinician.
 
 // nhsFree: usually free on the NHS from the GP practice you're registered with.

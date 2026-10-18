@@ -36,9 +36,17 @@ python3 server/app.py
 - The NHS data says *whether* a pharmacy runs a travel clinic, not which vaccines it stocks, and does not mark yellow fever centres, so the app links to NaTHNaC's yellow fever centre finder.
 - Which vaccines are free at GP practices is set by `nhsFree` in `js/data.js`.
 
+### Google star ratings (optional)
+
+With `GOOGLE_PLACES_API_KEY` in `server/.env`, each clinic search also runs two Google Places (New) Text Searches ("pharmacy" and "pharmacy travel clinic vaccinations", nearest first) and attaches **★ rating (count)** to NHS pharmacies that match by location and name. The badge links to the Google reviews, and there is a **Best rated first** sort.
+
+- Matching: within 120 m and sharing a distinctive name word (or within 25 m), or within 250 m with an identical name. Unmatched clinics simply show no stars; GP practices are not rated.
+- Cost control: `GOOGLE_DAILY_LIMIT` (default 30 requests/day, tracked in `server/cache/google-usage.json`) keeps usage under Google's 1,000 free requests a month. When the limit is reached, clinics still load without stars.
+- Google ratings are fetched fresh each time (Google's terms don't allow caching them); only NHS data is cached.
+
 ### Data
 
-Advice lives in `js/data.js`, grouped by regional profile with per-country overrides. It is general guidance summarised from NaTHNaC/TravelHealthPro, NHS fitfortravel and FCDO. It is not medical advice.
+Advice lives in `js/data.js`, grouped by regional profile with per-country overrides. It is general guidance summarised from NaTHNaC/TravelHealthPro and FCDO. It is not medical advice.
 
 ### Personalised advice (optional)
 

@@ -5,7 +5,7 @@ const Clinics = (() => {
   const YF_FINDER = 'https://nathnacyfzone.org.uk/search-centres';
   const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const els = {};
-  const state = { origin: null, placeText: null, vaccine: '', sort: 'distance', clinics: [], source: '', error: '' };
+  const state = { origin: null, placeText: null, vaccine: '', sort: 'distance', clinics: [], source: '', ratingsNote: '', error: '' };
   let map, pins, markers = [], loadId = 0;
 
   function init() {
@@ -114,6 +114,7 @@ const Clinics = (() => {
       // Exact distance from the user's real position (the server rounds positions for caching).
       state.clinics = data.clinics.map((c) => ({ ...c, distanceKm: distanceKm(state.origin, c) }));
       state.source = data.source;
+      state.ratingsNote = data.ratingsNote || '';
     } catch (err) {
       if (id !== loadId) return;
       state.clinics = [];
@@ -163,6 +164,10 @@ const Clinics = (() => {
     if (state.sort === 'open') return list.sort(first(isOpenNow));
     if (state.sort === 'website') return list.sort(first((c) => !!c.website));
     if (state.sort === 'pharmacy') return list.sort(first((c) => c.kind === 'pharmacy'));
+    // Highest stars first; more reviews breaks ties; clinics without a Google rating go last.
+    if (state.sort === 'rating') {
+      return list.sort((a, b) => ((b.rating || 0) - (a.rating || 0)) || ((b.ratingCount || 0) - (a.ratingCount || 0)) || byDistance(a, b));
+    }
     return list.sort(byDistance);
   }
 
@@ -193,7 +198,8 @@ const Clinics = (() => {
         <div class="meta">${esc(hoursToday(c))}</div>
         <div class="links">${linksHtml(c)}</div>
       </li>`).join('') +
-      `<li class="list-note">Source: ${esc(state.source)}. Opening hours can change: check before you go.
+      `<li class="list-note">These pharmacies run a travel clinic. The NHS doesn't list which vaccines each one stocks, so check when booking.
+        Source: ${esc(state.source)}. ${esc(state.ratingsNote)} Opening hours can change: check before you go.
         <a href="${mapsSearchUrl()}" target="_blank" rel="noopener">More options in Google Maps ↗</a></li>`;
   }
 
@@ -207,8 +213,17 @@ const Clinics = (() => {
 
   // ---------- Small pieces ----------
 
+  // "★ 4.8 (403)" linking to the Google reviews, shown first so it's what users see at a glance.
+  function ratingHtml(c) {
+    if (!c.rating) return '';
+    const text = `★ ${c.rating.toFixed(1)} (${c.ratingCount})`;
+    return c.googleUrl
+      ? `<a class="badge rating" href="${esc(c.googleUrl)}" target="_blank" rel="noopener" title="Read reviews on Google">${text} ↗</a>`
+      : `<span class="badge rating">${text}</span>`;
+  }
+
   function badgesHtml(c) {
-    const b = ['<span class="badge">🏥 NHS listed</span>'];
+    const b = [ratingHtml(c), '<span class="badge">🏥 NHS listed</span>'];
     if (c.travelClinic) b.push('<span class="badge ok">✈️ Travel clinic</span>');
     if (c.kind === 'gp') b.push('<span class="badge you">GP: free NHS vaccines if you\'re registered here</span>');
     if (Object.keys(c.hours).length) b.push(isOpenNow(c) ? '<span class="badge ok">Open now</span>' : '<span class="badge warn">Closed now</span>');
@@ -224,7 +239,7 @@ const Clinics = (() => {
   }
 
   function popupHtml(c) {
-    return `<strong>${esc(tidy(c.name))}</strong><br>${esc(tidy(c.address))}${c.postcode ? `, ${esc(c.postcode)}` : ''}<br>
+    return `<strong>${esc(tidy(c.name))}</strong>${c.rating ? ` ${ratingHtml(c)}` : ''}<br>${esc(tidy(c.address))}${c.postcode ? `, ${esc(c.postcode)}` : ''}<br>
       ${esc(hoursToday(c))}<br>${linksHtml(c)}`;
   }
 
