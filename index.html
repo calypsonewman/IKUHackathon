@@ -3,15 +3,23 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Travel Health Map</title>
+  <title>JabMap – Travel vaccines &amp; health advice</title>
+  <meta name="description" content="JabMap: travel vaccines, health advice and nearby clinics for UK travellers, all in one place." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.5a7.5 7.5 0 0 0-7.5 7.5c0 5.6 7.5 13.5 7.5 13.5s7.5-7.9 7.5-13.5A7.5 7.5 0 0 0 12 1.5z' fill='%23005eb8'/%3E%3Cpath d='M10.8 4.8h2.4v2.9h2.9v2.4h-2.9V13h-2.4v-2.9H7.9V7.7h2.9z' fill='%23fff'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
   <header class="site-header">
     <div class="wrap">
-      <h1>Travel Health Map</h1>
-      <p>Click a country or city to see recommended vaccines, health advice and travel advice.</p>
+      <h1 class="brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 1.5a7.5 7.5 0 0 0-7.5 7.5c0 5.6 7.5 13.5 7.5 13.5s7.5-7.9 7.5-13.5A7.5 7.5 0 0 0 12 1.5z" fill="#fff" />
+          <path d="M10.8 4.8h2.4v2.9h2.9v2.4h-2.9V13h-2.4v-2.9H7.9V7.7h2.9z" fill="#005eb8" />
+        </svg>
+        <span>Jab<span class="brand-accent">Map</span></span>
+      </h1>
+      <p class="tagline">Travel vaccines, health advice and nearby clinics for UK travellers, all in one place.</p>
     </div>
   </header>
 
@@ -26,31 +34,47 @@
 
     <section class="explorer" aria-label="Destination explorer">
       <div class="map-col">
+        <div class="section-head">
+          <h2>Where are you travelling to?</h2>
+          <p>Click a country on the map, or a dot for one of 50 popular destinations with city-specific advice. You can also search.</p>
+        </div>
         <div class="search">
           <label for="dest-search" class="visually-hidden">Search a destination</label>
-          <input id="dest-search" list="dest-list" placeholder="Search a country or city…" autocomplete="off" />
+          <input id="dest-search" list="dest-list" placeholder="Search a country or city, e.g. Thailand or Bali" autocomplete="off" />
           <datalist id="dest-list"></datalist>
         </div>
         <div id="world-map" class="world-map" role="application" aria-label="World map"></div>
         <div class="legend" aria-label="Map legend">
+          <strong class="legend-title">Vaccine need:</strong>
           <span><i class="sw l0"></i>Routine only</span>
           <span><i class="sw l1"></i>Some travellers</span>
           <span><i class="sw l2"></i>Several vaccines / some malaria</span>
           <span><i class="sw l3"></i>Yellow fever or high malaria risk</span>
-          <span><i class="city-dot"></i>City</span>
+          <span title="50 popular destinations, some with city-specific advice"><i class="city-dot"></i>Popular destination</span>
         </div>
       </div>
 
       <aside id="panel" class="panel" aria-live="polite">
         <div class="panel-empty">
+          <div class="panel-empty-icon" aria-hidden="true">🌍</div>
           <h2>Choose a destination</h2>
-          <p>Select a country or city on the map, or search above.</p>
+          <p>Pick a country or city on the map to see:</p>
+          <ul class="panel-empty-list">
+            <li>💉 Vaccines you may need</li>
+            <li>🩺 Health advice, such as malaria and food &amp; water</li>
+            <li>✈️ Travel advice and emergency numbers</li>
+            <li>📰 Latest travel news (AI summary)</li>
+          </ul>
+          <p class="small">Add your trip &amp; health details above for advice personalised to you.</p>
         </div>
       </aside>
     </section>
 
     <section id="clinics" class="clinics" aria-labelledby="clinics-title">
-      <h2 id="clinics-title">Vaccination clinics near you</h2>
+      <div class="section-head">
+        <h2 id="clinics-title">Find a vaccination clinic near you</h2>
+        <p>NHS-listed pharmacy travel clinics and GP practices, with Google ratings.</p>
+      </div>
       <div class="clinic-controls">
         <button id="locate-btn" class="btn">Use my current location</button>
         <form id="place-form" class="place-form">
@@ -88,8 +112,9 @@
     </section>
 
     <footer class="disclaimer">
+      <p class="footer-brand"><strong>JabMap</strong> · jabmap.health</p>
       <p>
-        This app gives general guidance only and is not a substitute for professional advice.
+        JabMap gives general guidance only and is not a substitute for professional advice.
         Always check <a href="https://travelhealthpro.org.uk/countries" target="_blank" rel="noopener">TravelHealthPro (NaTHNaC)</a> and
         <a href="https://www.gov.uk/foreign-travel-advice" target="_blank" rel="noopener">FCDO travel advice</a>,
         and speak to a nurse, pharmacist or travel clinic 6–8 weeks before you travel.
