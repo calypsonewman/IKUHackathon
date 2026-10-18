@@ -109,6 +109,8 @@ details li { margin-bottom: 6px; }
 .clinic-badges .badge { font-size: 0.72rem; }
 #clinic-advice .alert { margin: 12px 0 0; }
 .alert.ok { border-left-color: var(--green); background: #e6f4ea; }
+.badge.rating { background: #fff4ce; color: #6b4e00; text-decoration: none; }
+a.badge.rating:hover { text-decoration: underline; }
 
 /* Numbered pins on the clinic map, matching the numbers in the list */
 .num, .clinic-pin {

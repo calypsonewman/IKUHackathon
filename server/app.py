@@ -7,6 +7,7 @@ Standard library only, so it runs with `python3 server/app.py` and nothing to in
 Later: swap the file cache in `NewsCache` for Tiger Cloud (Postgres/TimescaleDB).
 """
 import json
+import math
 import os
 import re
 import threading
@@ -330,6 +331,127 @@ def find_clinics(lat, lng):
     }
 
 
+# ---------- Google star ratings (Places API New) ----------
+
+GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", "")
+# Our own hard cap on Google requests per day (the Cloud Console quota couldn't be set).
+# 30/day stays under Google's 1,000 free Text Search Enterprise requests a month.
+GOOGLE_DAILY_LIMIT = int(os.environ.get("GOOGLE_DAILY_LIMIT", "30"))
+# Two searches, both nearest-first: plain pharmacies, and ones advertising travel clinics.
+# Together they cover far more of the NHS travel clinic list than either alone.
+GOOGLE_QUERIES = ["pharmacy", "pharmacy travel clinic vaccinations"]
+GOOGLE_FIELDS = "places.id,places.displayName,places.location,places.rating,places.userRatingCount,places.googleMapsUri"
+# Words that don't help tell two pharmacies apart ("Boots Pharmacy" vs "Boots").
+NAME_FILLER = {"pharmacy", "pharmacies", "chemist", "chemists", "the", "and", "ltd", "limited",
+               "clinic", "at", "plc", "uk", "london", "dispensing", "travel"}
+google_usage_lock = threading.Lock()
+
+
+class GoogleError(Exception):
+    pass
+
+
+def use_google_request():
+    """Count one Google request against today's limit. Returns False once the limit is reached."""
+    path = CACHE_DIR / "google-usage.json"
+    with google_usage_lock:
+        today = date.today().isoformat()
+        try:
+            usage = json.loads(path.read_text())
+        except (OSError, ValueError):
+            usage = {}
+        if usage.get("date") != today:
+            usage = {"date": today, "count": 0}
+        if usage["count"] >= GOOGLE_DAILY_LIMIT:
+            return False
+        usage["count"] += 1
+        path.write_text(json.dumps(usage))
+        return True
+
+
+def google_places(query, lat, lng):
+    """Up to 20 pharmacies matching `query`, nearest to (lat, lng) first."""
+    if not use_google_request():
+        raise GoogleError("daily limit reached")
+    body = {
+        "textQuery": query,
+        "includedType": "pharmacy",
+        "strictTypeFiltering": True,
+        "pageSize": 20,
+        "rankPreference": "DISTANCE",
+        "locationBias": {"circle": {"center": {"latitude": lat, "longitude": lng}, "radius": 2500}},
+    }
+    req = urllib.request.Request(
+        "https://places.googleapis.com/v1/places:searchText",
+        data=json.dumps(body).encode(),
+        headers={"Content-Type": "application/json", "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
+                 "X-Goog-FieldMask": GOOGLE_FIELDS},  # only these fields, which keeps the cost tier down
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            return json.load(resp).get("places", [])
+    except urllib.error.HTTPError as err:
+        raise GoogleError(f"Google Places error {err.code}")
+    except urllib.error.URLError as err:
+        raise GoogleError(f"Could not reach Google: {err.reason}")
+
+
+def distance_m(lat1, lng1, lat2, lng2):
+    r = math.pi / 180
+    h = math.sin((lat2 - lat1) * r / 2) ** 2 + math.cos(lat1 * r) * math.cos(lat2 * r) * math.sin((lng2 - lng1) * r / 2) ** 2
+    return 2 * 6371000 * math.asin(math.sqrt(h))
+
+
+def name_words(name):
+    return frozenset(w for w in re.findall(r"[a-z0-9]+", name.lower()) if w not in NAME_FILLER)
+
+
+def match_place(clinic, places):
+    """The Google place that is the same pharmacy as `clinic`, or None.
+
+    Same pharmacy = within 120 m and sharing a distinctive name word (or within 25 m whatever the name),
+    or within 250 m with an identical name (the NHS and Google sometimes place the pin differently).
+    """
+    mine = name_words(clinic["name"])
+    best = None
+    for p in places:
+        loc = p.get("location") or {}
+        if not p.get("rating") or "latitude" not in loc:
+            continue
+        metres = distance_m(clinic["lat"], clinic["lng"], loc["latitude"], loc["longitude"])
+        theirs = name_words((p.get("displayName") or {}).get("text", ""))
+        close_and_similar = metres <= 120 and (mine & theirs or metres <= 25)
+        same_name_nearby = metres <= 250 and mine and mine == theirs
+        if (close_and_similar or same_name_nearby) and (best is None or metres < best[0]):
+            best = (metres, p)
+    return best[1] if best else None
+
+
+def add_google_ratings(data, lat, lng):
+    """Add Google star ratings to NHS pharmacies. Not cached: Google's terms don't allow storing ratings.
+
+    GP practices are skipped: their Google ratings mostly reflect appointment booking, not vaccinations.
+    """
+    if not GOOGLE_PLACES_API_KEY:
+        return {**data, "ratingsNote": ""}
+    try:
+        places = {}
+        for query in GOOGLE_QUERIES:
+            for p in google_places(query, lat, lng):
+                places[p["id"]] = p  # the two searches overlap, so de-duplicate by Google's place id
+    except GoogleError as err:
+        print(f"Google ratings skipped: {err}")
+        return {**data, "ratingsNote": "Google ratings are unavailable right now."}
+    clinics = []
+    for clinic in data["clinics"]:
+        match = match_place(clinic, places.values()) if clinic["kind"] == "pharmacy" else None
+        if match:
+            clinic = {**clinic, "rating": match["rating"], "ratingCount": match.get("userRatingCount", 0),
+                      "googleUrl": match.get("googleMapsUri", "")}
+        clinics.append(clinic)
+    return {**data, "clinics": clinics, "ratingsNote": "Star ratings from Google."}
+
+
 class FileCache:
     """One JSON file per key, reused until it is older than `ttl` seconds. Replace with Tiger Cloud later."""
 
@@ -404,14 +526,15 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(400, {"error": "The NHS directory only covers the UK. Enter a UK postcode or town."})
         # Round to ~1 km so nearby searches share a cache entry (saves our 1,500 requests/week).
         # The browser works out exact distances from the user's real position.
-        lat, lng = round(lat, 2), round(lng, 2)
+        area_lat, area_lng = round(lat, 2), round(lng, 2)
         try:
-            self.send_json(200, cache.get(f"clinics-{lat}_{lng}", CLINIC_CACHE_TTL_SECONDS, lambda: find_clinics(lat, lng)))
+            nhs = cache.get(f"clinics-{area_lat}_{area_lng}", CLINIC_CACHE_TTL_SECONDS, lambda: find_clinics(area_lat, area_lng))
+            self.send_json(200, add_google_ratings(nhs, lat, lng))
         except NhsError as err:
             self.log_message("clinics error at %s,%s: %s", lat, lng, err)
             self.send_json(502, {"error": str(err)})
 
 
 if __name__ == "__main__":
-    print(f"Travel Health Map on http://localhost:{PORT}  (Gemini model: {MODEL}, news mode: {NEWS_MODE}, key {'set' if API_KEY else 'MISSING'}, NHS key {'set' if NHS_API_KEY else 'MISSING'})")
+    print(f"Travel Health Map on http://localhost:{PORT}  (Gemini model: {MODEL}, news mode: {NEWS_MODE}, key {'set' if API_KEY else 'MISSING'}, NHS key {'set' if NHS_API_KEY else 'MISSING'}, Google ratings key {'set' if GOOGLE_PLACES_API_KEY else 'MISSING'} (max {GOOGLE_DAILY_LIMIT}/day))")
     ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
