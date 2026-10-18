@@ -356,7 +356,10 @@ c('340', 'Honduras', 'centralAm', { em: '911' });
 c('558', 'Nicaragua', 'centralAm', {});
 c('188', 'Costa Rica', 'centralAm', { em: '911', fcdo: 'costa-rica' });
 c('591', 'Panama', 'centralAm', { yf: 'some', addMost: ['typhoid'], em: '911', malaria: ['some', 'Risk in eastern provinces (Darién and Guna Yala). Antimalarial tablets may be advised there.'] });
-c('192', 'Cuba', 'caribbean', { em: '106 police · 104 ambulance', fcdo: 'cuba' });
+c('192', 'Cuba', 'caribbean', { em: '106 police · 104 ambulance', fcdo: 'cuba',
+  insurance: { required: true, checked: '2026-10-18',
+    text: 'You must be able to show proof of medical insurance when you arrive. If you can\'t, you may have to buy a Cuban policy at the airport, which may have limited cover. (The UK government\'s advice doesn\'t mention this rule, but Canada\'s does.)',
+    source: { title: 'Government of Canada: Cuba travel advice', url: 'https://travel.gc.ca/destinations/cuba' } } });
 c('388', 'Jamaica', 'caribbean', { em: '119 police · 110 ambulance', fcdo: 'jamaica' });
 c('332', 'Haiti', 'caribbean', { addMost: ['typhoid'], addSome: ['cholera'], malaria: ['high', 'Risk throughout the country. Antimalarial tablets are usually advised.'], travel: ['The FCDO advises against all travel to Haiti. Check the latest advice.'] });
 c('214', 'Dominican Republic', 'caribbean', { em: '911', fcdo: 'dominican-republic', malaria: ['some', 'Low risk in some western provinces. Use mosquito bite avoidance.'] });
@@ -417,7 +420,10 @@ c('478', 'Mauritania', 'ssa', { yf: 'some' });
 c('728', 'South Sudan', 'ssa', {});
 c('729', 'Sudan', 'ssa', { yf: 'some', travel: ['The FCDO advises against all travel to Sudan.'] });
 c('231', 'Ethiopia', 'ssa', { yf: 'some', em: '991 police · 907 ambulance', fcdo: 'ethiopia', health: ['Altitude: Addis Ababa is at 2,355m, take it easy for the first few days.'] });
-c('404', 'Kenya', 'ssa', { yf: 'some', em: '999 or 112', fcdo: 'kenya', malaria: ['high', 'Risk in most areas including the coast and safari parks. Low risk in central Nairobi and the highlands above 2,500m.'] });
+c('404', 'Kenya', 'ssa', { yf: 'some', em: '999 or 112', fcdo: 'kenya',
+  insurance: { required: true, checked: '2026-10-18',
+    text: 'Since 5 October 2026 most visitors staying under 12 months must buy Kenyan government travel health insurance, usually as part of the eTA (electronic travel authorisation) application. UK travel insurance policies are not accepted in its place. It lasts 90 days. You still need your own travel insurance as well.',
+    source: { title: 'FCDO: Kenya entry requirements', url: 'https://www.gov.uk/foreign-travel-advice/kenya/entry-requirements' } }, malaria: ['high', 'Risk in most areas including the coast and safari parks. Low risk in central Nairobi and the highlands above 2,500m.'] });
 c('800', 'Uganda', 'ssa', { em: '999 or 112', fcdo: 'uganda' });
 c('108', 'Burundi', 'ssa', {});
 c('024', 'Angola', 'ssa', {});
@@ -614,6 +620,7 @@ function buildAdvice(country, city) {
     health,
     travel,
     fcdoUrl,
+    insurance: insuranceAdvice(country),
   };
 }
 
@@ -681,7 +688,39 @@ function estimateFromNeighbours(country) {
     health,
     travel,
     fcdoUrl: 'https://www.gov.uk/foreign-travel-advice',
+    insurance: insuranceAdvice(country),
   };
+}
+
+// ---------- Insurance (guidance only: the app never recommends a specific insurer) ----------
+
+// Where a UK GHIC (Global Health Insurance Card) gives access to state healthcare. From the NHS Business
+// Services Authority's "Where you can use your card" page, checked 18 Oct 2026. Keyed by the same ISO codes.
+const GHIC_SOURCE = { title: 'NHSBSA: where you can use your GHIC', url: 'https://www.nhsbsa.nhs.uk/get-healthcare-cover-travelling-abroad/where-you-can-use-your-card' };
+const EU_CODES = ['040', '056', '100', '191', '196', '203', '208', '233', '246', '248', '250', '276', '300', '348', '372', '380',
+  '428', '440', '442', '470', '528', '616', '620', '642', '703', '705', '724', '752', '663'];
+const GHIC = {
+  ...Object.fromEntries(EU_CODES.map((k) => [k, ''])),
+  352: '', 438: '', 578: '', 499: '', 831: '', 832: '', 833: '', 654: '', // Iceland, Liechtenstein, Norway, Montenegro, Guernsey, Jersey, Isle of Man, St Helena
+  756: 'In Switzerland it is only accepted from UK, Swiss and EU nationals, refugees, stateless people and some of their family members.',
+  '036': 'In Australia you need it as proof to get treatment through Medicare, the public healthcare system.',
+};
+
+const INSURANCE_CHECKLIST = [
+  'Buy travel insurance as soon as you book, so you are covered if you have to cancel.',
+  'Check it covers medical treatment, emergency evacuation and getting you home (repatriation).',
+  'Declare every pre-existing medical condition, even if it is well controlled, or the insurer may refuse to pay.',
+  'Check the activities you plan (e.g. trekking, diving, scooters) are covered.',
+  'Save your policy number and the insurer\'s 24-hour emergency phone number somewhere you can reach offline.',
+];
+
+function insuranceAdvice(country) {
+  const ghic = country.code in GHIC
+    ? { text: `Take your free UK GHIC (Global Health Insurance Card). It gives you state healthcare at the same cost as local people. ${GHIC[country.code]}
+        It is not a replacement for travel insurance: it may not cover all costs and never covers getting you home.`.replace(/\s+/g, ' ').trim(),
+        source: GHIC_SOURCE }
+    : null;
+  return { required: country.insurance || null, ghic, checklist: INSURANCE_CHECKLIST };
 }
 
 // Colour band for the choropleth.

@@ -231,6 +231,25 @@
       </details>`;
   }
 
+  const MONEYHELPER = 'https://www.moneyhelper.org.uk/en/everyday-money/insurance/travel-insurance-if-you-have-a-medical-condition';
+  const GHIC_APPLY = 'https://www.nhsbsa.nhs.uk/get-healthcare-cover-travelling-abroad';
+
+  function insuranceHtml(a, me) {
+    const ins = a.insurance;
+    const fmtDate = (d) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    const source = (s, checked) => `<p class="small">Source: <a href="${s.url}" target="_blank" rel="noopener">${s.title} ↗</a>${checked ? `, checked ${fmtDate(checked)}` : ''}</p>`;
+    const list = (items) => `<ul>${items.map((t) => `<li>${t}</li>`).join('')}</ul>`;
+    return `
+      ${ins.required ? `<p class="alert danger"><strong>Insurance required to enter.</strong> ${ins.required.text}</p>${source(ins.required.source, ins.required.checked)}` : ''}
+      ${ins.ghic ? `<p class="alert"><strong>GHIC accepted.</strong> ${ins.ghic.text}</p>${source(ins.ghic.source)}` : ''}
+      ${me?.insurance.length ? `<p class="vax-group">For you</p>${list(me.insurance)}` : ''}
+      <p class="vax-group">Checklist for any policy</p>${list(ins.checklist)}
+      <p class="small">JabMap doesn't recommend insurers. If you have a medical condition,
+        <a href="${MONEYHELPER}" target="_blank" rel="noopener">MoneyHelper ↗</a> (free and government-backed) explains your options
+        and lists specialist insurers. <a href="${GHIC_APPLY}" target="_blank" rel="noopener">Get a free GHIC ↗</a>
+        (only through the NHS: unofficial sites charge a fee).</p>`;
+  }
+
   let current = null;
   Profile.onChange(() => current && renderPanel(current.country, current.city, true));
 
@@ -246,6 +265,8 @@
     if (a.malaria === 'high') badges.push('<span class="badge danger">High malaria risk</span>');
     else if (a.malaria === 'some') badges.push('<span class="badge warn">Malaria in some areas</span>');
     else if (!a.estimated) badges.push('<span class="badge ok">No malaria risk</span>'); // never claim "no risk" from a guess
+    if (a.insurance.required) badges.push('<span class="badge danger">Insurance required to enter</span>');
+    if (a.insurance.ghic) badges.push('<span class="badge ok">GHIC accepted</span>');
     const estimateBanner = a.estimated ? `<p class="alert warn"><strong>Region not in database.</strong>
       We don't have travel health advice for ${country.name} yet.
       ${a.basedOn ? `The vaccines below are a suggested list combined from neighbouring countries: <strong>${a.basedOn}</strong>.` : ''}
@@ -276,6 +297,11 @@
         <summary>✈️ Travel advice</summary>
         <div class="body"><ul>${a.travel.map((t) => `<li>${t}</li>`).join('')}</ul>
           <p class="small"><a href="${a.fcdoUrl}" target="_blank" rel="noopener">Latest FCDO travel advice for ${country.name} ↗</a></p></div>
+      </details>
+
+      <details>
+        <summary>🛡️ Insurance${a.insurance.required ? ' <span class="chip warn">Required</span>' : ''}</summary>
+        <div class="body">${insuranceHtml(a, me)}</div>
       </details>
 
       <details id="news-section">

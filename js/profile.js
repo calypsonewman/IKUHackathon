@@ -352,7 +352,26 @@ const Profile = (() => {
       alerts.push({ level: 'info', text: 'For long stays in malaria areas, discuss long-term antimalarial options and how to get medical care locally.' });
     }
 
-    return { recommended, consider, covered, statuses, alerts, summary: summaryText() };
+    return { recommended, consider, covered, statuses, alerts, insurance: insuranceNotes(advice, acts, conds), summary: summaryText() };
+  }
+
+  // Insurance points that depend on this traveller (shown in the panel's Insurance dropdown).
+  function insuranceNotes(advice, acts, conds) {
+    const notes = [];
+    if (conds.has('chronic') || conds.has('immuno')) {
+      notes.push('Tell your insurer about your medical conditions. If you are refused cover, or offered a policy that excludes your condition, MoneyHelper lists specialist insurers (link below).');
+    }
+    if (conds.has('pregnant')) {
+      notes.push('Check your policy covers pregnancy-related care, and the stage of pregnancy you will be at while away.');
+    }
+    if (conds.has('age60')) notes.push('Some policies have upper age limits or cost more with age, so compare several insurers.');
+    if (acts.has('altitude')) notes.push('Many policies only cover trekking up to a set altitude. Check yours covers the highest point you will reach.');
+    if (acts.has(LONG)) notes.push('Single-trip policies often have a maximum trip length. Check yours covers your whole stay, or look at long-stay policies.');
+    if (acts.has('health')) notes.push('Working or volunteering abroad, especially in healthcare, may not be covered by a standard holiday policy.');
+    if (advice.most.some((k) => k !== 'routine') || advice.malaria !== 'none') {
+      notes.push('Follow the medical advice for this trip (vaccines, antimalarial tablets). Some policies won\'t pay claims if you didn\'t.');
+    }
+    return notes;
   }
 
   function summaryText() {
