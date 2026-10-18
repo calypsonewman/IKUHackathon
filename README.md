@@ -1,6 +1,8 @@
 # IKUHackathon
 ## JABMAP: Making Health More Accessible 
-The project's main idea is to make vaccine information readily available in one space. 
+The project's main idea is to make vaccine information readily available in one space.
+
+**Try it live: https://jabmap.health**
 
 Problem:
 When travelling to another country, we require getting some vaccinations or health tests done depending on our health condition and the destination’s health regulations. Searching for these required tests and vaccines can be a tedious task, given that various sources point to different requirements.
@@ -75,14 +77,28 @@ Each destination has a **📰 Latest news** dropdown. When opened, `server/app.p
 - News is shown separately and labelled as an AI summary; it never changes the vaccine advice.
 - Later: replace the file cache (`NewsCache`) with Tiger Cloud.
 
-### Deploy to jabmap.health (Render + GoDaddy)
+### Live site and deployment (Render + Porkbun)
 
-1. Sign in to [Render](https://render.com) with GitHub, then **New > Blueprint** and pick this repo. Render reads `render.yaml`.
-2. When asked, paste `GEMINI_API_KEY`, `NHS_API_KEY` and `GOOGLE_PLACES_API_KEY` (from your `server/.env`). Wait for the deploy to go live at `https://jabmap.onrender.com` (or similar) and check it works.
-3. In Render: your service > **Settings > Custom Domains**, add `jabmap.health` and `www.jabmap.health`. Render shows the DNS records to add.
-4. In GoDaddy: **My Products > jabmap.health > DNS**, add those records (an **A** record for `@` and a **CNAME** for `www`), removing any existing GoDaddy "parked" A record for `@`. Back in Render, click **Verify**. HTTPS is set up automatically once DNS works (minutes to a few hours).
+**Live:** https://jabmap.health (redirects to https://www.jabmap.health). Backup address: https://ikuhackathon.onrender.com
 
-Notes: the free plan sleeps when unused, so open the site a minute before demoing. On a public server everyone shares one Google ratings cap (`GOOGLE_DAILY_LIMIT`), and the NHS APIs used are test environments.
+**How it is set up**
+- **Hosting: Render.** The service is `ikuhackathon`. It runs `python3 server/app.py` from the `main` branch, so merging a pull request into `main` redeploys the site.
+- **Secret keys** (`GEMINI_API_KEY`, `NHS_API_KEY`, `GOOGLE_PLACES_API_KEY`) are set in Render under the service's **Environment** tab, never in the repo. `HOST` must be `0.0.0.0` on Render.
+- **Domain: `jabmap.health`, registered at Porkbun** (not GoDaddy). Its DNS at Porkbun has:
+
+  | Type | Host | Answer |
+  |---|---|---|
+  | ALIAS | *(blank)* | `ikuhackathon.onrender.com` |
+  | CNAME | `www` | `ikuhackathon.onrender.com` |
+
+  Porkbun's default parking records (pointing to `pixie.porkbun.com`) were removed. HTTPS certificates are issued automatically by Render.
+
+**Deploying from scratch** (if the service ever needs recreating)
+1. In [Render](https://render.com): **New > Blueprint**, pick this repo, branch `main`. Render reads `render.yaml` (start command `python3 server/app.py`, no build step, `HOST=0.0.0.0`). If you use **New > Web Service** instead, enter those settings by hand.
+2. Paste the three keys from your local `server/.env` when asked, then check the `.onrender.com` address works.
+3. Service **Settings > Custom Domains**: add `jabmap.health` and `www.jabmap.health`, then set the DNS records above at Porkbun (**Domain Management > jabmap.health > DNS**) and click **Verify** in Render.
+
+**Before a demo:** the free plan sleeps when unused, so open the site a minute beforehand. Keep the `.onrender.com` link and a local copy (`python3 server/app.py`) as backups. On the public site everyone shares one Google ratings cap (`GOOGLE_DAILY_LIMIT`), files in `server/cache/` are wiped on each restart, and the NHS APIs used are test environments.
 
 ### Insurance (guidance only)
 
