@@ -13,6 +13,21 @@
   // Countries
   const topo = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json').then((r) => r.json());
   const geo = topojson.feature(topo, topo.objects.countries);
+  fixDateLine(geo);
+
+  // Russia and Fiji cross the 180° date line, which Leaflet draws as stripes right across the map.
+  // Shift the wrapped-around part of those outlines east by 360° so each shape stays in one piece.
+  // (Antarctica also crosses it, but sits below the visible map, so it's left alone.)
+  function fixDateLine(collection) {
+    collection.features.forEach((f) => {
+      if (!f.geometry) return;
+      const polygons = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+      polygons.forEach((rings) => rings.forEach((ring) => {
+        const crosses = ring.some((c, i) => i > 0 && Math.abs(c[0] - ring[i - 1][0]) > 180);
+        if (crosses && ring.every((c) => c[1] > -60)) ring.forEach((c) => { if (c[0] < 0) c[0] += 360; });
+      }));
+    });
+  }
 
   function countryFor(feature) {
     const geoName = feature.properties.name;

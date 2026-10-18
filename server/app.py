@@ -1,4 +1,4 @@
-"""Travel Health Map server.
+"""JabMap server.
 
 Serves the static app and a /api/news endpoint that asks Gemini (with Google Search grounding)
 for recent travel-relevant news about a country. Results are cached on disk per country.
@@ -46,6 +46,8 @@ MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 FALLBACK_MODEL = os.environ.get("GEMINI_FALLBACK_MODEL", "gemini-3.5-flash")
 gemini_used = threading.local()
 PORT = int(os.environ.get("PORT", "8000"))
+# 127.0.0.1 = only this computer can open the app. A host such as Render sets HOST=0.0.0.0 so visitors can reach it.
+HOST = os.environ.get("HOST", "127.0.0.1")
 # auto = try Google Search grounding, fall back to Google News RSS + Gemini summary
 NEWS_MODE = os.environ.get("NEWS_MODE", "auto")
 grounding_blocked_until = 0.0
@@ -652,5 +654,5 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    print(f"Travel Health Map on http://localhost:{PORT}  (Gemini model: {MODEL}, news mode: {NEWS_MODE}, key {'set' if API_KEY else 'MISSING'}, NHS key {'set' if NHS_API_KEY else 'MISSING'}, Google ratings key {'set' if GOOGLE_PLACES_API_KEY else 'MISSING'} (max {GOOGLE_DAILY_LIMIT}/day))")
-    ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
+    print(f"JabMap on http://localhost:{PORT}  (Gemini model: {MODEL}, news mode: {NEWS_MODE}, key {'set' if API_KEY else 'MISSING'}, NHS key {'set' if NHS_API_KEY else 'MISSING'}, Google ratings key {'set' if GOOGLE_PLACES_API_KEY else 'MISSING'} (max {GOOGLE_DAILY_LIMIT}/day))")
+    ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()

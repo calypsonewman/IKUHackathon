@@ -1,0 +1,21 @@
+# Render deployment recipe (https://render.com): New > Blueprint > pick this repo.
+# Render asks for the values marked "sync: false" once; paste the keys there (never commit them).
+services:
+  - type: web
+    name: jabmap
+    runtime: python
+    plan: free
+    buildCommand: echo "No build step needed"
+    startCommand: python3 server/app.py
+    healthCheckPath: /
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: NHS_API_KEY
+        sync: false
+      - key: GOOGLE_PLACES_API_KEY
+        sync: false
+      - key: GOOGLE_DAILY_LIMIT
+        value: "30"
