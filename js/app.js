@@ -3,12 +3,15 @@
   const panel = document.getElementById('panel');
   const searchIndex = new Map(); // label -> { country, city, layer }
   let selectedLayer = null;
+  let zoomedTo = null; // the country layer or city the map is currently zoomed in on
 
   Clinics.init();
   Profile.init();
 
   // No background tiles: the coloured country shapes sit on the map's plain blue "sea" (see .world-map in styles.css).
-  const map = L.map('world-map', { worldCopyJump: true, minZoom: 2, maxZoom: 10, maxBounds: [[-85, -200], [85, 200]] }).setView([25, 10], 2);
+  const WORLD_VIEW = { center: [25, 10], zoom: 2 };
+  const map = L.map('world-map', { worldCopyJump: true, minZoom: 2, maxZoom: 10, maxBounds: [[-85, -200], [85, 200]] })
+    .setView(WORLD_VIEW.center, WORLD_VIEW.zoom);
 
   // Countries
   const topo = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json').then((r) => r.json());
@@ -54,7 +57,7 @@
       layer.on({
         mouseover: () => layer !== selectedLayer && layer.setStyle({ weight: 2, color: '#003087' }),
         mouseout: () => layer !== selectedLayer && layer.setStyle(baseStyle(country)),
-        click: () => select(country, null, layer),
+        click: () => toggle(layer, () => select(country, null, layer)),
       });
       // Keep the largest shape per name (e.g. Australia rather than Ashmore and Cartier Is.)
       const prev = searchIndex.get(country.name);
@@ -71,7 +74,7 @@
       pane: 'cities', radius: 5, color: '#003087', weight: 2.5, fillColor: '#fff', fillOpacity: 1,
     }).addTo(cityLayer);
     marker.bindTooltip(city.name, { direction: 'top', offset: [0, -4] });
-    marker.on('click', (e) => { L.DomEvent.stopPropagation(e); select(country, city, null); });
+    marker.on('click', (e) => { L.DomEvent.stopPropagation(e); toggle(city, () => select(country, city, null)); });
     searchIndex.set(`${city.name}, ${country.name}`, { country, city });
   });
 
@@ -83,13 +86,7 @@
     const hit = searchIndex.get(searchInput.value) ||
       [...searchIndex.entries()].find(([k]) => k.toLowerCase().startsWith(searchInput.value.toLowerCase()))?.[1];
     if (!hit) return;
-    if (hit.city) {
-      map.flyTo(hit.city.ll, 6);
-      select(hit.country, hit.city, null);
-    } else {
-      map.flyToBounds(hit.layer.getBounds(), { maxZoom: 5 });
-      select(hit.country, null, hit.layer);
-    }
+    select(hit.country, hit.city || null, hit.city ? null : hit.layer); // select() also zooms
   });
 
   function highlight(layer) {
@@ -101,7 +98,38 @@
   function select(country, city, layer) {
     if (!layer) layer = searchIndex.get(country.name)?.layer || null;
     highlight(layer);
+    zoomTo(city, layer);
     renderPanel(country, city);
+  }
+
+  // Smoothly zoom to a city, or to the selected country.
+  // Clicking the country or city you're already zoomed in on zooms back out to the whole world.
+  function toggle(target, selectIt) {
+    if (zoomedTo === target) {
+      zoomedTo = null;
+      map.flyTo(WORLD_VIEW.center, WORLD_VIEW.zoom, { duration: 1 });
+    } else {
+      selectIt();
+    }
+  }
+
+  // If the user zooms all the way out themselves, the next click on that country should zoom in again.
+  map.on('zoomend', () => { if (map.getZoom() <= WORLD_VIEW.zoom) zoomedTo = null; });
+
+  function zoomTo(city, layer) {
+    zoomedTo = city || layer;
+    if (city) map.flyTo(city.ll, 6, { duration: 1 });
+    else if (layer) map.flyToBounds(mainBounds(layer), { padding: [30, 30], maxZoom: 6, duration: 1 });
+  }
+
+  // Some countries include far-away territories (France -> French Guiana, USA -> Hawaii),
+  // so zoom to the country's biggest piece instead of a box around all of them.
+  function mainBounds(layer) {
+    const geometry = layer.feature.geometry;
+    if (geometry.type !== 'MultiPolygon') return layer.getBounds();
+    const pieces = geometry.coordinates.map((polygon) => L.latLngBounds(polygon[0].map(([lng, lat]) => [lat, lng])));
+    const size = (b) => (b.getNorth() - b.getSouth()) * (b.getEast() - b.getWest());
+    return pieces.reduce((biggest, b) => (size(b) > size(biggest) ? b : biggest));
   }
 
   const STATUS_CHIP = {
